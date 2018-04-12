@@ -39,6 +39,7 @@ from burlap.oomdp.core import TerminalFunction;
 from burlap.assignment4.EasyGridWorldLauncher import visualizeInitialGridWorld
 from burlap.assignment4.util.AnalysisRunner import calcRewardInEpisode, simpleValueFunctionVis,getAllStates
 import csv
+import os
 from collections import deque
 import pickle
 
@@ -50,7 +51,11 @@ def frange(start, stop, step=1.0):
         i += step
 
 def dumpCSV(nIter, times,rewards,steps,convergence,world,method):
-    fname = '{} {}.csv'.format(world,method)
+    folder = './OUTPUT/'
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    fname = '{}{} {}.csv'.format(folder,world,method)
     iters = range(1,nIter+1)
     assert len(iters)== len(times)
     assert len(iters)== len(rewards)
