@@ -96,6 +96,13 @@ def mapPicture(javaStrArr):
     return out
 
 def dumpPolicyMap(javaStrArr,fname):
+
+    folder = './OUTPUT/'
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    fname = '{}{}.csv'.format(folder,fname)
+
     pic = mapPicture(javaStrArr)
     with open(fname,'wb') as f:
         pickle.dump(pic,f)
@@ -165,9 +172,10 @@ if __name__ == '__main__':
             convergence[Vname].append(vi.latestDelta)
             # evaluate the policy with evalTrials roll outs
             runEvals(initialState,p,rewards[Vname],steps[Vname])
-            if nIter == 5 or vi.latestDelta < 1e-6:
+            if nIter == 1:
                 dumpPolicyMap(MapPrinter.printPolicyMap(allStates, p, gen.getMap()),'Value {} {} Iter {} Policy Map.pkl'.format(Vname, world,nIter))
             if vi.latestDelta <1e-6:
+                dumpPolicyMap(MapPrinter.printPolicyMap(allStates, p, gen.getMap()),'Value {} {} Iter {} Policy Map.pkl'.format(Vname, world,nIter))
                 break
         print "\n\n\n"
         dumpCSV(nIter, timing[Vname][1:], rewards[Vname], steps[Vname],convergence[Vname], world, Vname)
@@ -194,10 +202,11 @@ if __name__ == '__main__':
                 convergence[Pname].append(comparePolicies(last_policy,current_policy))
             last_policy = current_policy
             runEvals(initialState,p,rewards[Pname],steps[Pname])
-            if nIter == 5 or convergence[Pname2][-1] < 1e-6:
+            if nIter == 1:
                 #simpleValueFunctionVis(pi, p, initialState, domain, hashingFactory, "Policy {} Iteration {}".format(Pname, nIter))
                 dumpPolicyMap(MapPrinter.printPolicyMap(allStates, p, gen.getMap()),'Policy {} {} Iter {} Policy Map.pkl'.format(Pname, world,nIter))
             if convergence[Pname2][-1] <1e-6:
+                dumpPolicyMap(MapPrinter.printPolicyMap(allStates, p, gen.getMap()),'Policy {} {} Iter {} Policy Map.pkl'.format(Pname, world,nIter))
                 break
         MapPrinter.printPolicyMap(pi.getAllStates(), p, gen.getMap());
         print "\n\n\n"
@@ -232,7 +241,7 @@ if __name__ == '__main__':
                         convergence[Qname].append(sum(last10Chg)/10.)
                         # evaluate the policy with one roll out visualize the trajectory
                         runEvals(initialState,p,rewards[Qname],steps[Qname])
-                        if nIter == 50 :
+                        if nIter == 1 :
                             dumpPolicyMap(MapPrinter.printPolicyMap(allStates, p, gen.getMap()),'QL {} {} Iter {} Policy Map.pkl'.format(Qname,world,nIter))
                         if convergence[Qname][-1] <0.5:
 		                    dumpPolicyMap(MapPrinter.printPolicyMap(allStates, p, gen.getMap()),'QL {} {} Iter {} Policy Map.pkl'.format(Qname,world,nIter));break
