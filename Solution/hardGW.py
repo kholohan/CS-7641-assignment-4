@@ -98,7 +98,7 @@ def dumpPolicyMap(javaStrArr,fname):
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-    fname = '{}{}.csv'.format(folder,fname)
+    fname = '{}{}'.format(folder,fname)
 
     pic = mapPicture(javaStrArr)
     with open(fname,'wb') as f:
