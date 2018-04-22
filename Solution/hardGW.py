@@ -38,6 +38,7 @@ from burlap.assignment4.util import MapPrinter;
 from burlap.oomdp.core import TerminalFunction;
 from burlap.assignment4.EasyGridWorldLauncher import visualizeInitialGridWorld
 from burlap.assignment4.util.AnalysisRunner import calcRewardInEpisode, simpleValueFunctionVis,getAllStates
+from burlap.behavior.policy import BoltzmannQPolicy, RandomPolicy
 import csv
 import os
 from collections import deque
@@ -187,8 +188,8 @@ if __name__ == '__main__':
                 break
         print "\n\n\n"
         dumpCSV(nIter, timing[Vname][1:], rewards[Vname], steps[Vname],convergence[Vname], world, Vname)
-      
-      
+
+
     for discount in frange(0, 1, 0.1):
         Pname = 'Policy d{:0.1f}'.format(discount)
         Pname2 = Pname + ' 2'
@@ -219,7 +220,8 @@ if __name__ == '__main__':
         print "\n\n\n"
         dumpCSV(nIter, timing[Pname][1:], rewards[Pname], steps[Pname],convergence[Pname2], world, Pname)
         #raise
-      
+
+    #Epsilon-Greedy
     MAX_ITERATIONS=NUM_INTERVALS = MAX_ITERATIONS*30;
     increment = MAX_ITERATIONS/NUM_INTERVALS
     iterations = range(1,MAX_ITERATIONS+1)
@@ -228,7 +230,7 @@ if __name__ == '__main__':
             for epsilon in [0.1,0.3,0.5]:
                 for discount in frange(0, 1, 0.1):
                     last10Chg = deque([99]*10,maxlen=10)
-                    Qname = 'Q-Learning L{:0.1f} q{:0.1f} E{:0.1f} d{:0.1f}'.format(lr,qInit,epsilon,discount)
+                    Qname = 'Q-Learning Epsilon-Greedy L{:0.1f} q{:0.1f} E{:0.1f} d{:0.1f}'.format(lr,qInit,epsilon,discount)
                     agent = QLearning(domain,discount,hashingFactory,qInit,lr,epsilon,300)
                     #agent.setLearningRateFunction(SoftTimeInverseDecayLR(1.,0.))
                     agent.setDebugCode(0)
@@ -249,9 +251,56 @@ if __name__ == '__main__':
                         # evaluate the policy with one roll out visualize the trajectory
                         runEvals(initialState,p,rewards[Qname],steps[Qname])
                         if nIter == 1:
-                            dumpPolicyMap(MapPrinter.printPolicyMap(allStates, p, gen.getMap()),'QL {} {} Iter {} Policy Map.pkl'.format(Qname,world,nIter))
+                            dumpPolicyMap(MapPrinter.printPolicyMap(allStates, p, gen.getMap()),
+                                          'QL {} {} Iter {} Policy Map.pkl'.format(Qname,world,nIter))
                         if convergence[Qname][-1] <0.5:
 		                    dumpPolicyMap(MapPrinter.printPolicyMap(allStates, p, gen.getMap()),'QL {} {} Iter {} Policy Map.pkl'.format(Qname,world,nIter));break
                     print "\n\n\n"
+                    dumpPolicyMap(MapPrinter.printPolicyMap(allStates, p, gen.getMap()),
+                                  'QL {} {} Iter {} Policy Map.pkl'.format(Qname, world, nIter))
+
                     dumpCSV(nIter, timing[Qname], rewards[Qname], steps[Qname],convergence[Qname], world, Qname)
-     
+
+
+    #  #Boltzmann
+    increment = MAX_ITERATIONS / NUM_INTERVALS
+    iterations = range(1, MAX_ITERATIONS + 1)
+    for lr in [0.1,0.9]:
+         for qInit in [-100,0,100]:
+             for temp in [0.001, 0.01, 0.1, 1, 5, 7, 10]:
+                 for discount in frange(0, 1, 0.1):
+                    last10Chg = deque([99] * 10, maxlen=10)
+                    Qname = 'Q-Learning Boltzmann L{:0.1f} q{:0.1f} T{} d{:0.1f}'.format(lr, qInit, temp,
+                                                                                                   discount)
+                    agent = QLearning(domain, discount, hashingFactory, qInit, lr,-1, 300)
+                    agent.setLearningPolicy(BoltzmannQPolicy(agent, temp))
+                    # agent.setLearningRateFunction(SoftTimeInverseDecayLR(1.,0.))
+                    agent.setDebugCode(0)
+                    print "//{} {} Iteration Analysis//".format(world, Qname)
+                    for nIter in iterations:
+                        if nIter % 50 == 0: print(nIter)
+                        startTime = clock()
+                        ea = agent.runLearningEpisode(env, 300)
+                        if len(timing[Qname]) > 0:
+                            timing[Qname].append(timing[Qname][-1] + clock() - startTime)
+                        else:
+                            timing[Qname].append(clock() - startTime)
+                        env.resetEnvironment()
+                        agent.initializeForPlanning(rf, tf, 1)
+                        p = agent.planFromState(initialState)  # run planning from our initial state
+                        last10Chg.append(agent.maxQChangeInLastEpisode)
+                        convergence[Qname].append(sum(last10Chg) / 10.)
+                        # evaluate the policy with one roll out visualize the trajectory
+                        runEvals(initialState, p, rewards[Qname], steps[Qname])
+                        if nIter == 1:
+                            dumpPolicyMap(MapPrinter.printPolicyMap(allStates, p, gen.getMap()),
+                                          'QL {} {} Iter {} Policy Map.pkl'.format(Qname, world, nIter))
+                        if convergence[Qname][-1] < 0.5:
+                            dumpPolicyMap(MapPrinter.printPolicyMap(allStates, p, gen.getMap()),
+                                          'QL {} {} Iter {} Policy Map.pkl'.format(Qname, world, nIter))
+                            break
+                    print "\n\n\n"
+                    print(nIter)
+                    dumpPolicyMap(MapPrinter.printPolicyMap(allStates, p, gen.getMap()),
+                                  'QL {} {} Iter {} Policy Map.pkl'.format(Qname, world, nIter))
+                    dumpCSV(nIter, timing[Qname], rewards[Qname], steps[Qname], convergence[Qname], world, Qname)
